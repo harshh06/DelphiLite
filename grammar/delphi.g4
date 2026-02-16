@@ -3,11 +3,34 @@ grammar delphi;
 // --- Parser Rules ---
 
 program
-    : programHeader variableDeclarationSection? block '.'
+    : programHeader typeSection? implementationSection* variableDeclarationSection? block '.'
     ;
 
 programHeader
     : 'program' IDENTIFIER ';'
+    ;
+
+implementationSection
+    : procedureImplementation
+    | functionImplementation
+    | constructorImplementation
+    | destructorImplementation
+    ;
+
+procedureImplementation
+    : 'procedure' IDENTIFIER '.' IDENTIFIER formalParameterList? ';' variableDeclarationSection? block ';'
+    ;
+
+functionImplementation
+    : 'function' IDENTIFIER '.' IDENTIFIER formalParameterList? ':' typeName ';' variableDeclarationSection? block ';'
+    ;
+
+constructorImplementation
+    : 'constructor' IDENTIFIER '.' IDENTIFIER formalParameterList? ';' block ';'
+    ;
+
+destructorImplementation
+    : 'destructor' IDENTIFIER '.' IDENTIFIER ';' block ';'
     ;
 
 variableDeclarationSection
@@ -29,6 +52,8 @@ identifierList
 typeName
     : 'Integer'
     | 'String'
+    | 'Boolean'
+    | IDENTIFIER
     ;
 
 block
@@ -41,12 +66,18 @@ statementList
 
 statement
     : assignmentStatement
+    | methodCallStatement
     | writelnStatement
-    | /* empty statement */
+    | /* empty */
+    ;
+
+methodCallStatement
+    : IDENTIFIER '.' IDENTIFIER argumentList?
     ;
 
 assignmentStatement
-    : IDENTIFIER ':=' expression
+    : IDENTIFIER ':=' expression                      // x := 10
+    | IDENTIFIER '.' IDENTIFIER ':=' expression       // obj.Field := 10
     ;
 
 writelnStatement
@@ -60,11 +91,80 @@ expression
     ;
 
 atom
-    : IDENTIFIER         # IdentifierExpr
-    | INTEGER_LITERAL    # IntegerExpr
-    | STRING_LITERAL     # StringExpr
-    | '(' expression ')' # ParenExpr
+    : IDENTIFIER '.' IDENTIFIER argumentList?    # MemberAccessExpr
+    | IDENTIFIER argumentList                     # FunctionCallExpr
+    | IDENTIFIER                                  # IdentifierExpr
+    | INTEGER_LITERAL                             # IntegerExpr
+    | STRING_LITERAL                              # StringExpr
+    | '(' expression ')'                          # ParenExpr
     ;
+
+argumentList
+    : '(' (expression (',' expression)*)? ')'
+    ;
+
+typeSection
+    : 'type' classDeclaration+
+    ;
+
+classDeclaration
+    : IDENTIFIER '=' 'class' classBody 'end' ';'
+    ;
+
+classBody
+    : classVisibilitySection*
+    ;
+
+classVisibilitySection
+    : visibilityModifier classMember+
+    ;
+
+visibilityModifier
+    : 'private'
+    | 'public'
+    | 'protected'
+    ;
+
+classMember
+    : fieldDeclaration
+    | methodDeclaration
+    | constructorDeclaration
+    | destructorDeclaration
+    ;
+
+fieldDeclaration
+    : identifierList ':' typeName ';'
+    ;
+
+methodDeclaration
+    : procedureDeclaration
+    | functionDeclaration
+    ;
+
+constructorDeclaration
+    : 'constructor' IDENTIFIER formalParameterList? ';'
+    ;
+
+destructorDeclaration
+    : 'destructor' IDENTIFIER ';'
+    ;
+
+procedureDeclaration
+    : 'procedure' IDENTIFIER formalParameterList? ';'
+    ;
+
+functionDeclaration
+    : 'function' IDENTIFIER formalParameterList? ':' typeName ';'
+    ;
+
+formalParameterList
+    : '(' formalParameter (';' formalParameter)* ')'
+    ;
+
+formalParameter
+    : identifierList ':' typeName
+    ;
+
 
 // --- Lexer Rules ---
 
