@@ -68,9 +68,14 @@ statement
     : assignmentStatement
     | methodCallStatement
     | writelnStatement
+    | readlnStatement
     | /* empty */
     ;
 
+readlnStatement
+    : 'readln' '(' IDENTIFIER ')'
+    ;
+    
 methodCallStatement
     : IDENTIFIER '.' IDENTIFIER argumentList?
     ;
