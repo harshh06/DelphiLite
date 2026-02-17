@@ -1,4 +1,10 @@
-program Hello;
+program Test0;
+
+var
+  x, y: Integer;
+
 begin
-  writeln('Hello');
+  x := 10;
+  y := 20;
+  writeln(x + y);
 end.
