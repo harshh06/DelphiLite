@@ -1,0 +1,10 @@
+# Compiled Java classes
+*.class
+
+# ANTLR generated files
+src/grammar/*.java
+src/grammar/*.interp
+src/grammar/*.tokens
+
+# macOS
+.DS_Store
