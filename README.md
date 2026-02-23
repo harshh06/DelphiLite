@@ -119,3 +119,11 @@ java -cp "src:lib/antlr-4.13.2-complete.jar" interpreter.DelphiInterpreter tests
 - Protected visibility is enforced the same as private (no subclass exception)
 - No `inherited` keyword support
 - Single-file programs only (no `uses` clause)
+
+## Authors
+
+1. Harsh Soni (UFID: 11187000)
+2. Paras Mittal (UFID: 60617951)
+
+**Course:** Programming Language Principles (COP5556)
+
