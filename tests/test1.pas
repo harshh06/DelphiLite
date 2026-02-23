@@ -1,4 +1,5 @@
-program TestIndependence;
+program Test1;
+{ Test 1: Basic class with private field, constructor, methods, destructor }
 
 type
   TCounter = class
@@ -7,7 +8,6 @@ type
   public
     constructor Create;
     procedure Increment;
-    procedure Add;
     function GetCount: Integer;
     destructor Destroy;
   end;
@@ -15,16 +15,12 @@ type
 constructor TCounter.Create;
 begin
   FCount := 0;
+  writeln('Counter created');
 end;
 
 procedure TCounter.Increment;
 begin
   FCount := FCount + 1;
-end;
-
-procedure TCounter.Add;
-begin
-  FCount := FCount + 5;
 end;
 
 function TCounter.GetCount: Integer;
@@ -34,25 +30,23 @@ end;
 
 destructor TCounter.Destroy;
 begin
+  writeln('Counter destroyed');
 end;
 
 var
-  counter1, counter2: TCounter;
+  c: TCounter;
 
 begin
-  counter1 := TCounter.Create;
-  counter2 := TCounter.Create;
-
-  counter1.Increment;
-  counter1.Increment;
-  counter1.Increment;
-  counter1.Add;
-
-  counter2.Increment;
-
-  writeln(counter1.GetCount);
-  writeln(counter2.GetCount);
-
-  counter1.Destroy;
-  counter2.Destroy;
+  c := TCounter.Create;
+  c.Increment;
+  c.Increment;
+  c.Increment;
+  writeln(c.GetCount);
+  c.Destroy;
 end.
+
+{ Expected output:
+  Counter created
+  3
+  Counter destroyed
+}

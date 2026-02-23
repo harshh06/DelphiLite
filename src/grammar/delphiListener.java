@@ -336,6 +336,46 @@ public interface delphiListener extends ParseTreeListener {
 	 */
 	void exitClassDeclaration(delphiParser.ClassDeclarationContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link delphiParser#classParentList}.
+	 * @param ctx the parse tree
+	 */
+	void enterClassParentList(delphiParser.ClassParentListContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link delphiParser#classParentList}.
+	 * @param ctx the parse tree
+	 */
+	void exitClassParentList(delphiParser.ClassParentListContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link delphiParser#interfaceDeclaration}.
+	 * @param ctx the parse tree
+	 */
+	void enterInterfaceDeclaration(delphiParser.InterfaceDeclarationContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link delphiParser#interfaceDeclaration}.
+	 * @param ctx the parse tree
+	 */
+	void exitInterfaceDeclaration(delphiParser.InterfaceDeclarationContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link delphiParser#interfaceBody}.
+	 * @param ctx the parse tree
+	 */
+	void enterInterfaceBody(delphiParser.InterfaceBodyContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link delphiParser#interfaceBody}.
+	 * @param ctx the parse tree
+	 */
+	void exitInterfaceBody(delphiParser.InterfaceBodyContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link delphiParser#interfaceMethodDeclaration}.
+	 * @param ctx the parse tree
+	 */
+	void enterInterfaceMethodDeclaration(delphiParser.InterfaceMethodDeclarationContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link delphiParser#interfaceMethodDeclaration}.
+	 * @param ctx the parse tree
+	 */
+	void exitInterfaceMethodDeclaration(delphiParser.InterfaceMethodDeclarationContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link delphiParser#classBody}.
 	 * @param ctx the parse tree
 	 */

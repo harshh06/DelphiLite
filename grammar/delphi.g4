@@ -109,11 +109,28 @@ argumentList
     ;
 
 typeSection
-    : 'type' classDeclaration+
+    : 'type' (classDeclaration | interfaceDeclaration)+
     ;
 
 classDeclaration
-    : IDENTIFIER '=' 'class' classBody 'end' ';'
+    : IDENTIFIER '=' 'class' ('(' classParentList ')')? classBody 'end' ';'
+    ;
+
+classParentList
+    : IDENTIFIER (',' IDENTIFIER)*
+    ;
+
+interfaceDeclaration
+    : IDENTIFIER '=' 'interface' interfaceBody 'end' ';'
+    ;
+
+interfaceBody
+    : interfaceMethodDeclaration*
+    ;
+
+interfaceMethodDeclaration
+    : procedureDeclaration
+    | functionDeclaration
     ;
 
 classBody
@@ -183,6 +200,10 @@ INTEGER_LITERAL
 
 STRING_LITERAL
     : '\'' .*? '\''
+    ;
+
+COMMENT
+    : '{' .*? '}' -> skip
     ;
 
 WS
