@@ -206,6 +206,30 @@ public interface delphiVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitClassDeclaration(delphiParser.ClassDeclarationContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link delphiParser#classParentList}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitClassParentList(delphiParser.ClassParentListContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link delphiParser#interfaceDeclaration}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitInterfaceDeclaration(delphiParser.InterfaceDeclarationContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link delphiParser#interfaceBody}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitInterfaceBody(delphiParser.InterfaceBodyContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link delphiParser#interfaceMethodDeclaration}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitInterfaceMethodDeclaration(delphiParser.InterfaceMethodDeclarationContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link delphiParser#classBody}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

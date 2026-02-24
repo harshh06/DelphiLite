@@ -14,6 +14,57 @@ public class DelphiInterpreter extends delphiBaseVisitor<Object> {
     private Scanner scanner = new Scanner(System.in);
     private String currentClassName = null; // Track which class context we're in
     private ObjectInstance currentSelf = null; // Track current 'Self' object
+    private Map<String, delphiParser.FormalParameterListContext> methodParams = new HashMap<>();
+    private Map<String, InterfaceDefinition> interfaceDefinitions = new HashMap<>();
+
+        private void checkAccess(String memberName, String visibility, String ownerClassName) {
+        if (visibility.equals("private") && !ownerClassName.equals(currentClassName)) {
+            throw new RuntimeException("Cannot access private member '" + memberName + "' from outside class '" + ownerClassName + "'");
+        }
+        if (visibility.equals("protected") && !ownerClassName.equals(currentClassName)) {
+            throw new RuntimeException("Cannot access protected member '" + memberName + "' from outside class '" + ownerClassName + "'");
+        }
+    }
+
+    private List<String> getParamNames(delphiParser.FormalParameterListContext paramCtx) {
+        List<String> names = new ArrayList<>();
+        if (paramCtx == null) return names;
+        for (delphiParser.FormalParameterContext fp : paramCtx.formalParameter()) {
+            for (TerminalNode id : fp.identifierList().IDENTIFIER()) {
+                names.add(id.getText());
+            }
+        }
+        return names;
+    }
+
+    private List<Object> evalArguments(delphiParser.ArgumentListContext argCtx) {
+        List<Object> values = new ArrayList<>();
+        if (argCtx == null) return values;
+        for (delphiParser.ExpressionContext expr : argCtx.expression()) {
+            values.add(visit(expr));
+        }
+        return values;
+    }
+
+    private void bindParameters(String key, delphiParser.ArgumentListContext argCtx) {
+        if (methodParams.containsKey(key) && argCtx != null) {
+            List<String> paramNames = getParamNames(methodParams.get(key));
+            List<Object> argValues = evalArguments(argCtx);
+            for (int i = 0; i < paramNames.size() && i < argValues.size(); i++) {
+                currentEnv.define(paramNames.get(i), argValues.get(i));
+            }
+        }
+    }
+
+    private String resolveMethodKey(String className, String methodName) {
+        String key = className + "." + methodName;
+        if (methodBodies.containsKey(key)) return key;
+        ClassDefinition classDef = classDefinitions.get(className);
+        if (classDef != null && classDef.getParentClassName() != null) {
+            return resolveMethodKey(classDef.getParentClassName(), methodName);
+        }
+        return key;
+    }
 
     public static void main(String[] args) throws Exception {
         if (args.length < 1) {
@@ -75,14 +126,8 @@ public class DelphiInterpreter extends delphiBaseVisitor<Object> {
             Object objValue = currentEnv.get(objName);
             if (objValue instanceof ObjectInstance) {
                 ObjectInstance obj = (ObjectInstance) objValue;
-
-                // Check visibility
                 ClassDefinition classDef = classDefinitions.get(obj.getClassName());
-                String visibility = classDef.getFieldVisibility(fieldName);
-                if (visibility.equals("private") && !obj.getClassName().equals(currentClassName)) {
-                    throw new RuntimeException("Cannot access private field '" + fieldName + "' from outside class");
-                }
-
+                checkAccess(fieldName, classDef.getFieldVisibility(fieldName), obj.getClassName());
                 obj.setField(fieldName, value);
             }
         } else {
@@ -190,53 +235,72 @@ public class DelphiInterpreter extends delphiBaseVisitor<Object> {
         return null;
     }
 
-    @Override
+       @Override
     public Object visitTypeSection(delphiParser.TypeSectionContext ctx) {
-        // Register all class declarations
+        // Register interfaces first
+        for (delphiParser.InterfaceDeclarationContext ifaceCtx : ctx.interfaceDeclaration()) {
+            String ifaceName = ifaceCtx.IDENTIFIER().getText();
+            InterfaceDefinition ifaceDef = new InterfaceDefinition(ifaceName);
+            for (delphiParser.InterfaceMethodDeclarationContext methodCtx : ifaceCtx.interfaceBody().interfaceMethodDeclaration()) {
+                if (methodCtx.procedureDeclaration() != null) {
+                    ifaceDef.addMethod(methodCtx.procedureDeclaration().IDENTIFIER().getText());
+                } else if (methodCtx.functionDeclaration() != null) {
+                    ifaceDef.addMethod(methodCtx.functionDeclaration().IDENTIFIER().getText());
+                }
+            }
+            interfaceDefinitions.put(ifaceName, ifaceDef);
+        }
+
+        // Register classes
         for (delphiParser.ClassDeclarationContext classCtx : ctx.classDeclaration()) {
             String className = classCtx.IDENTIFIER().getText();
             ClassDefinition classDef = new ClassDefinition(className);
 
-            // Process class body
+            // Handle parent class and interfaces
+            if (classCtx.classParentList() != null) {
+                List<TerminalNode> parents = classCtx.classParentList().IDENTIFIER();
+                for (TerminalNode parent : parents) {
+                    String parentName = parent.getText();
+                    if (classDefinitions.containsKey(parentName)) {
+                        classDef.setParentClassName(parentName);
+                        classDef.inheritFrom(classDefinitions.get(parentName));
+                    } else if (interfaceDefinitions.containsKey(parentName)) {
+                        classDef.addImplementedInterface(parentName);
+                    }
+                }
+            }
+
+            // Process class body (same as before)
             for (delphiParser.ClassVisibilitySectionContext visSection : classCtx.classBody().classVisibilitySection()) {
-                String visibility = visSection.visibilityModifier().getText(); // "private", "public", or "protected"
-
-                // Process each member in this visibility section
+                String visibility = visSection.visibilityModifier().getText();
                 for (delphiParser.ClassMemberContext member : visSection.classMember()) {
-
-                    // Field declaration
                     if (member.fieldDeclaration() != null) {
                         delphiParser.FieldDeclarationContext fieldCtx = member.fieldDeclaration();
                         String typeName = fieldCtx.typeName().getText();
                         for (TerminalNode id : fieldCtx.identifierList().IDENTIFIER()) {
-                            String fieldName = id.getText();
-                            classDef.addField(fieldName, typeName, visibility);
+                            classDef.addField(id.getText(), typeName, visibility);
                         }
                     }
-
-                    // Method declarations (store visibility)
                     if (member.methodDeclaration() != null) {
                         if (member.methodDeclaration().procedureDeclaration() != null) {
-                            String methodName = member.methodDeclaration().procedureDeclaration().IDENTIFIER().getText();
-                            classDef.addMethodVisibility(methodName, visibility);
+                            classDef.addMethodVisibility(member.methodDeclaration().procedureDeclaration().IDENTIFIER().getText(), visibility);
                         } else if (member.methodDeclaration().functionDeclaration() != null) {
-                            String methodName = member.methodDeclaration().functionDeclaration().IDENTIFIER().getText();
-                            classDef.addMethodVisibility(methodName, visibility);
+                            classDef.addMethodVisibility(member.methodDeclaration().functionDeclaration().IDENTIFIER().getText(), visibility);
                         }
                     }
-
-                    // Constructor
                     if (member.constructorDeclaration() != null) {
-                        String constructorName = member.constructorDeclaration().IDENTIFIER().getText();
-                        classDef.addMethodVisibility(constructorName, visibility);
+                        classDef.addMethodVisibility(member.constructorDeclaration().IDENTIFIER().getText(), visibility);
                     }
-
-                    // Destructor
                     if (member.destructorDeclaration() != null) {
-                        String destructorName = member.destructorDeclaration().IDENTIFIER().getText();
-                        classDef.addMethodVisibility(destructorName, visibility);
+                        classDef.addMethodVisibility(member.destructorDeclaration().IDENTIFIER().getText(), visibility);
                     }
                 }
+            }
+
+            // Validate interfaces
+            for (String ifaceName : classDef.getImplementedInterfaces()) {
+                InterfaceDefinition ifaceDef = interfaceDefinitions.get(ifaceName);
+                if (ifaceDef != null) ifaceDef.validate(classDef);
             }
 
             classDefinitions.put(className, classDef);
@@ -244,43 +308,42 @@ public class DelphiInterpreter extends delphiBaseVisitor<Object> {
         return null;
     }
 
-    @Override
+        @Override
     public Object visitImplementationSection(delphiParser.ImplementationSectionContext ctx) {
         String className = null;
         String methodName = null;
         ParseTree body = null;
+        delphiParser.FormalParameterListContext params = null;
 
-        // Constructor implementation
         if (ctx.constructorImplementation() != null) {
             className = ctx.constructorImplementation().IDENTIFIER(0).getText();
             methodName = ctx.constructorImplementation().IDENTIFIER(1).getText();
             body = ctx.constructorImplementation().block();
-        }
-        // Destructor implementation
-        else if (ctx.destructorImplementation() != null) {
+            params = ctx.constructorImplementation().formalParameterList();
+        } else if (ctx.destructorImplementation() != null) {
             className = ctx.destructorImplementation().IDENTIFIER(0).getText();
             methodName = ctx.destructorImplementation().IDENTIFIER(1).getText();
             body = ctx.destructorImplementation().block();
-        }
-        // Procedure implementation
-        else if (ctx.procedureImplementation() != null) {
+        } else if (ctx.procedureImplementation() != null) {
             className = ctx.procedureImplementation().IDENTIFIER(0).getText();
             methodName = ctx.procedureImplementation().IDENTIFIER(1).getText();
             body = ctx.procedureImplementation().block();
-        }
-        // Function implementation
-        else if (ctx.functionImplementation() != null) {
+            params = ctx.procedureImplementation().formalParameterList();
+        } else if (ctx.functionImplementation() != null) {
             className = ctx.functionImplementation().IDENTIFIER(0).getText();
             methodName = ctx.functionImplementation().IDENTIFIER(1).getText();
             body = ctx.functionImplementation().block();
+            params = ctx.functionImplementation().formalParameterList();
         }
 
-        // Store method body with key "ClassName.MethodName"
         String key = className + "." + methodName;
         methodBodies.put(key, body);
-
+        if (params != null) {
+            methodParams.put(key, params);
+        }
         return null;
     }
+
     @Override
     public Object visitMemberAccessExpr(delphiParser.MemberAccessExprContext ctx) {
         String firstId = ctx.IDENTIFIER(0).getText();
@@ -298,20 +361,16 @@ public class DelphiInterpreter extends delphiBaseVisitor<Object> {
             ObjectInstance obj = new ObjectInstance(className, classDef);
 
             // Execute constructor body if it exists
-            String key = className + "." + methodName;
+            String key = resolveMethodKey(className, methodName);
             if (methodBodies.containsKey(key)) {
-                // Create new environment for constructor
-                Environment constructorEnv = new Environment(currentEnv);
                 Environment savedEnv = currentEnv;
-                currentEnv = constructorEnv;
-
-                // Set Self to the new object
+                currentEnv = new Environment(currentEnv);
                 ObjectInstance savedSelf = currentSelf;
                 currentSelf = obj;
                 String savedClassName = currentClassName;
                 currentClassName = className;
 
-                // Execute constructor body
+                bindParameters(key, ctx.argumentList());
                 visit(methodBodies.get(key));
 
                 // Restore context
@@ -331,41 +390,25 @@ public class DelphiInterpreter extends delphiBaseVisitor<Object> {
             String className = obj.getClassName();
             ClassDefinition classDef = classDefinitions.get(className);
 
-            // *** NEW: Check if it's a FIELD first ***
-            if (classDef.getFields().containsKey(memberName)) {
-                // This is field access: obj.FieldName
-                String visibility = classDef.getFieldVisibility(memberName);
-                if (visibility.equals("private") && !className.equals(currentClassName)) {
-                    throw new RuntimeException("Cannot access private field '" + memberName + "' from outside class");
-                }
-                // Return the field value
+            if (ctx.argumentList() == null && classDef.getFields().containsKey(memberName)) {
+                checkAccess(memberName, classDef.getFieldVisibility(memberName), className);
                 return obj.getField(memberName);
             }
 
-            // Otherwise, it's a method call: obj.Method()
             String methodName = memberName;
+            checkAccess(methodName, classDef.getMethodVisibility(methodName), className);
 
-            // Check visibility
-            String visibility = classDef.getMethodVisibility(methodName);
-            if (visibility.equals("private") && !className.equals(currentClassName)) {
-                throw new RuntimeException("Cannot access private method '" + methodName + "' from outside class");
-            }
-
-            // Execute method body
-            String key = className + "." + methodName;
+            String key = resolveMethodKey(className, methodName);
             if (methodBodies.containsKey(key)) {
-                // Create new environment for method
-                Environment methodEnv = new Environment(currentEnv);
                 Environment savedEnv = currentEnv;
+                Environment methodEnv = new Environment(currentEnv);
                 currentEnv = methodEnv;
-
-                // Set Self
                 ObjectInstance savedSelf = currentSelf;
                 currentSelf = obj;
                 String savedClassName = currentClassName;
                 currentClassName = className;
 
-                // Execute method body
+                bindParameters(key, ctx.argumentList());
                 visit(methodBodies.get(key));
 
                 // Get function return value
@@ -390,21 +433,19 @@ public class DelphiInterpreter extends delphiBaseVisitor<Object> {
     public Object visitMethodCallStatement(delphiParser.MethodCallStatementContext ctx) {
         String objName = ctx.IDENTIFIER(0).getText();
         String methodName = ctx.IDENTIFIER(1).getText();
+        delphiParser.ArgumentListContext argCtx = ctx.argumentList();
 
         Object objValue = currentEnv.get(objName);
         if (objValue instanceof ObjectInstance) {
             ObjectInstance obj = (ObjectInstance) objValue;
             String className = obj.getClassName();
+            ClassDefinition classDef = classDefinitions.get(className);
 
-            // Special handling for Destroy
             if (methodName.equals("Destroy")) {
-                // Execute destructor body
-                String key = className + "." + methodName;
+                String key = resolveMethodKey(className, methodName);
                 if (methodBodies.containsKey(key)) {
-                    Environment destructorEnv = new Environment(currentEnv);
                     Environment savedEnv = currentEnv;
-                    currentEnv = destructorEnv;
-
+                    currentEnv = new Environment(currentEnv);
                     ObjectInstance savedSelf = currentSelf;
                     currentSelf = obj;
                     String savedClassName = currentClassName;
@@ -416,30 +457,22 @@ public class DelphiInterpreter extends delphiBaseVisitor<Object> {
                     currentSelf = savedSelf;
                     currentClassName = savedClassName;
                 }
-
-                // Set variable to null (object is destroyed)
                 currentEnv.set(objName, null);
                 return null;
             }
 
-            // Regular method call
-            ClassDefinition classDef = classDefinitions.get(className);
-            String visibility = classDef.getMethodVisibility(methodName);
-            if (visibility.equals("private") && !className.equals(currentClassName)) {
-                throw new RuntimeException("Cannot access private method '" + methodName + "' from outside class");
-            }
+            checkAccess(methodName, classDef.getMethodVisibility(methodName), className);
 
-            String key = className + "." + methodName;
+            String key = resolveMethodKey(className, methodName);
             if (methodBodies.containsKey(key)) {
-                Environment methodEnv = new Environment(currentEnv);
                 Environment savedEnv = currentEnv;
-                currentEnv = methodEnv;
-
+                currentEnv = new Environment(currentEnv);
                 ObjectInstance savedSelf = currentSelf;
                 currentSelf = obj;
                 String savedClassName = currentClassName;
                 currentClassName = className;
 
+                bindParameters(key, argCtx);
                 visit(methodBodies.get(key));
 
                 currentEnv = savedEnv;
