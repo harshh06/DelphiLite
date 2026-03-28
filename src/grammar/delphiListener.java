@@ -158,6 +158,56 @@ public interface delphiListener extends ParseTreeListener {
 	 */
 	void exitStatement(delphiParser.StatementContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link delphiParser#ifStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterIfStatement(delphiParser.IfStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link delphiParser#ifStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitIfStatement(delphiParser.IfStatementContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link delphiParser#whileStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterWhileStatement(delphiParser.WhileStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link delphiParser#whileStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitWhileStatement(delphiParser.WhileStatementContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link delphiParser#forStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterForStatement(delphiParser.ForStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link delphiParser#forStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitForStatement(delphiParser.ForStatementContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link delphiParser#breakStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterBreakStatement(delphiParser.BreakStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link delphiParser#breakStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitBreakStatement(delphiParser.BreakStatementContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link delphiParser#continueStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterContinueStatement(delphiParser.ContinueStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link delphiParser#continueStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitContinueStatement(delphiParser.ContinueStatementContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link delphiParser#readlnStatement}.
 	 * @param ctx the parse tree
 	 */
@@ -198,6 +248,18 @@ public interface delphiListener extends ParseTreeListener {
 	 */
 	void exitWritelnStatement(delphiParser.WritelnStatementContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code AndExpr}
+	 * labeled alternative in {@link delphiParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterAndExpr(delphiParser.AndExprContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code AndExpr}
+	 * labeled alternative in {@link delphiParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitAndExpr(delphiParser.AndExprContext ctx);
+	/**
 	 * Enter a parse tree produced by the {@code MultiplicativeExpr}
 	 * labeled alternative in {@link delphiParser#expression}.
 	 * @param ctx the parse tree
@@ -222,6 +284,30 @@ public interface delphiListener extends ParseTreeListener {
 	 */
 	void exitAdditiveExpr(delphiParser.AdditiveExprContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code CompareExpr}
+	 * labeled alternative in {@link delphiParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterCompareExpr(delphiParser.CompareExprContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code CompareExpr}
+	 * labeled alternative in {@link delphiParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitCompareExpr(delphiParser.CompareExprContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code NotExpr}
+	 * labeled alternative in {@link delphiParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterNotExpr(delphiParser.NotExprContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code NotExpr}
+	 * labeled alternative in {@link delphiParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitNotExpr(delphiParser.NotExprContext ctx);
+	/**
 	 * Enter a parse tree produced by the {@code AtomExpr}
 	 * labeled alternative in {@link delphiParser#expression}.
 	 * @param ctx the parse tree
@@ -233,6 +319,18 @@ public interface delphiListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitAtomExpr(delphiParser.AtomExprContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code OrExpr}
+	 * labeled alternative in {@link delphiParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterOrExpr(delphiParser.OrExprContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code OrExpr}
+	 * labeled alternative in {@link delphiParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitOrExpr(delphiParser.OrExprContext ctx);
 	/**
 	 * Enter a parse tree produced by the {@code MemberAccessExpr}
 	 * labeled alternative in {@link delphiParser#atom}.
@@ -293,6 +391,30 @@ public interface delphiListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitStringExpr(delphiParser.StringExprContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code TrueExpr}
+	 * labeled alternative in {@link delphiParser#atom}.
+	 * @param ctx the parse tree
+	 */
+	void enterTrueExpr(delphiParser.TrueExprContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code TrueExpr}
+	 * labeled alternative in {@link delphiParser#atom}.
+	 * @param ctx the parse tree
+	 */
+	void exitTrueExpr(delphiParser.TrueExprContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code FalseExpr}
+	 * labeled alternative in {@link delphiParser#atom}.
+	 * @param ctx the parse tree
+	 */
+	void enterFalseExpr(delphiParser.FalseExprContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code FalseExpr}
+	 * labeled alternative in {@link delphiParser#atom}.
+	 * @param ctx the parse tree
+	 */
+	void exitFalseExpr(delphiParser.FalseExprContext ctx);
 	/**
 	 * Enter a parse tree produced by the {@code ParenExpr}
 	 * labeled alternative in {@link delphiParser#atom}.

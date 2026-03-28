@@ -101,6 +101,36 @@ public interface delphiVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitStatement(delphiParser.StatementContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link delphiParser#ifStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitIfStatement(delphiParser.IfStatementContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link delphiParser#whileStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitWhileStatement(delphiParser.WhileStatementContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link delphiParser#forStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitForStatement(delphiParser.ForStatementContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link delphiParser#breakStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitBreakStatement(delphiParser.BreakStatementContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link delphiParser#continueStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitContinueStatement(delphiParser.ContinueStatementContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link delphiParser#readlnStatement}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -125,6 +155,13 @@ public interface delphiVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitWritelnStatement(delphiParser.WritelnStatementContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code AndExpr}
+	 * labeled alternative in {@link delphiParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitAndExpr(delphiParser.AndExprContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code MultiplicativeExpr}
 	 * labeled alternative in {@link delphiParser#expression}.
 	 * @param ctx the parse tree
@@ -139,12 +176,33 @@ public interface delphiVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitAdditiveExpr(delphiParser.AdditiveExprContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code CompareExpr}
+	 * labeled alternative in {@link delphiParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitCompareExpr(delphiParser.CompareExprContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code NotExpr}
+	 * labeled alternative in {@link delphiParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitNotExpr(delphiParser.NotExprContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code AtomExpr}
 	 * labeled alternative in {@link delphiParser#expression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitAtomExpr(delphiParser.AtomExprContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code OrExpr}
+	 * labeled alternative in {@link delphiParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitOrExpr(delphiParser.OrExprContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code MemberAccessExpr}
 	 * labeled alternative in {@link delphiParser#atom}.
@@ -180,6 +238,20 @@ public interface delphiVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitStringExpr(delphiParser.StringExprContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code TrueExpr}
+	 * labeled alternative in {@link delphiParser#atom}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTrueExpr(delphiParser.TrueExprContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code FalseExpr}
+	 * labeled alternative in {@link delphiParser#atom}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFalseExpr(delphiParser.FalseExprContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code ParenExpr}
 	 * labeled alternative in {@link delphiParser#atom}.
