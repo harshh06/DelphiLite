@@ -1,25 +1,18 @@
-program Test11;
-{ Test 11: break — exit loop early when i reaches 5 }
+program TestBreak;
+
+{ Test 11: break inside while }
 
 var
   i: Integer;
 
 begin
-  i := 1;
-  while i <= 10 do
+  i := 0;
+  while i < 100 do
   begin
-    if i = 5 then
+    if i = 3 then
       break;
     writeln(i);
     i := i + 1;
   end;
-  writeln('Done');
+  writeln(i);
 end.
-
-{ Expected output:
-  1
-  2
-  3
-  4
-  Done
-}

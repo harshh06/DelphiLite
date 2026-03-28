@@ -3,7 +3,15 @@ grammar delphi;
 // --- Parser Rules ---
 
 program
-    : programHeader typeSection? implementationSection* variableDeclarationSection? block '.'
+    : programHeader typeSection? (implementationSection | standaloneProcDecl | standaloneFuncDecl)* variableDeclarationSection? block '.'
+    ;
+
+standaloneProcDecl
+    : 'procedure' IDENTIFIER formalParameterList? ';' variableDeclarationSection? block ';'
+    ;
+
+standaloneFuncDecl
+    : 'function' IDENTIFIER formalParameterList? ':' typeName ';' variableDeclarationSection? block ';'
     ;
 
 programHeader
@@ -67,6 +75,7 @@ statementList
 statement
     : assignmentStatement
     | methodCallStatement
+    | procedureCallStatement
     | writelnStatement
     | readlnStatement
     | ifStatement
@@ -76,6 +85,10 @@ statement
     | continueStatement
     | block
     | /* empty */
+    ;
+
+procedureCallStatement
+    : IDENTIFIER argumentList?
     ;
 
 ifStatement
@@ -115,14 +128,14 @@ writelnStatement
     : 'writeln' '(' expression ')'
     ;
 
-// Expression rule — ordered lowest to highest precedence (ANTLR4 left-recursion)
+// Expression rule — ordered highest to lowest precedence (ANTLR4 left-recursion)
 expression
-    : expression 'or' expression                                        # OrExpr
-    | expression 'and' expression                                       # AndExpr
-    | 'not' expression                                                  # NotExpr
-    | expression ('<' | '>' | '<=' | '>=' | '=' | '<>') expression    # CompareExpr
+    : expression ('*' | '/') expression                                # MultiplicativeExpr
     | expression ('+' | '-') expression                                # AdditiveExpr
-    | expression ('*' | '/') expression                                # MultiplicativeExpr
+    | expression ('<' | '>' | '<=' | '>=' | '=' | '<>') expression    # CompareExpr
+    | 'not' expression                                                  # NotExpr
+    | expression 'and' expression                                       # AndExpr
+    | expression 'or' expression                                        # OrExpr
     | atom                                                             # AtomExpr
     ;
 

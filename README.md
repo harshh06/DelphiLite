@@ -1,6 +1,6 @@
 # DelphiLite Interpreter
 
-A Delphi/Object Pascal interpreter built with Java and ANTLR4, supporting object-oriented features including classes, constructors/destructors, encapsulation, inheritance, and interfaces.
+A Delphi/Object Pascal interpreter built with Java and ANTLR4, supporting object-oriented features, control flow, standalone procedures/functions with static scoping, and bonus features like constant propagation.
 
 ## Features Implemented
 
@@ -10,11 +10,22 @@ A Delphi/Object Pascal interpreter built with Java and ANTLR4, supporting object
 - [x] Method Calls with Parameters (`obj.Method(arg1, arg2)`)
 - [x] Field Access (`obj.Field`)
 - [x] Variable Declarations and Assignments
-- [x] Arithmetic Expressions (`+`, `-`, `*`, `/`)
+- [x] Arithmetic Expressions (`+`, `-`, `*`, `/`) with correct precedence
 - [x] String Concatenation (`'Hello ' + 'World'`)
+- [x] Boolean Expressions (`and`, `or`, `not`)
+- [x] Comparison Operators (`<`, `>`, `<=`, `>=`, `=`, `<>`)
 - [x] I/O (`writeln`, `readln`)
+- [x] `if-then-else` conditional
+- [x] `while-do` loop
+- [x] `for-to` / `for-downto` loop
+- [x] `break` and `continue` inside loops
+- [x] Standalone Procedures and Functions
+- [x] Recursion (e.g., factorial)
+- [x] Static Scoping (functions see only global env + own locals)
 - [x] **Bonus:** Inheritance (`TChild = class(TParent)`)
 - [x] **Bonus:** Interfaces (`IMyInterface = interface ... end;`)
+- [x] **Bonus:** Formal Parameter Passing in procedures/functions
+- [x] **Bonus:** Constant Propagation with recursive folding (`--show-const-fold` flag)
 
 ## Project Structure
 
@@ -29,15 +40,15 @@ DelphiLite/
 │       ├── Environment.java         # Scoped symbol table
 │       ├── ClassDefinition.java     # Class metadata storage
 │       ├── ObjectInstance.java      # Runtime object instances
-│       └── InterfaceDefinition.java # Interface metadata and validation
+│       ├── InterfaceDefinition.java # Interface metadata and validation
+│       ├── ProcedureDefinition.java # Standalone procedure/function storage
+│       ├── BreakException.java      # Control flow: break
+│       └── ContinueException.java   # Control flow: continue
 ├── tests/
-│   ├── test1.pas                    # Basic class
-│   ├── test2.pas                    # Multiple objects (independent state)
-│   ├── test3.pas                    # Encapsulation violation (expected error)
-│   ├── test4.pas                    # Constructor with parameters
-│   ├── test5.pas                    # I/O integration (readln + class)
-│   ├── test6.pas                    # Inheritance (bonus)
-│   └── test7.pas                    # Interfaces (bonus)
+│   ├── test1.pas  — test7.pas      # OOP & I/O tests
+│   ├── test8.pas  — test12.pas     # Control flow tests
+│   ├── test13.pas — test17.pas     # Standalone proc/func & scoping tests
+│   └── test18.pas — test22.pas     # Bonus, combined, & edge-case tests
 ├── lib/
 │   └── antlr-4.13.2-complete.jar
 ├── README.md
@@ -77,6 +88,12 @@ On Windows, use `;` instead of `:` in the classpath:
 java -cp "src;lib/antlr-4.13.2-complete.jar" interpreter.DelphiInterpreter tests/test1.pas
 ```
 
+### Constant Propagation Bonus
+
+```bash
+java -cp "src:lib/antlr-4.13.2-complete.jar" interpreter.DelphiInterpreter --show-const-fold tests/test18.pas
+```
+
 ## Test Cases
 
 | File       | What It Tests                        | Expected Output                                    |
@@ -88,12 +105,27 @@ java -cp "src;lib/antlr-4.13.2-complete.jar" interpreter.DelphiInterpreter tests
 | test5.pas  | readln + writeln with class          | Reads integer from stdin, prints it back           |
 | test6.pas  | Inheritance (bonus)                  | `Animal created` x2, names + overridden sounds     |
 | test7.pas  | Interfaces (bonus)                   | `10`, `20`, `30`                                   |
+| test8.pas  | while-do loop (counter)              | `0`, `1`, `2`, `3`, `4`                            |
+| test9.pas  | for-to loop                          | `1`, `2`, `3`, `4`, `5`                            |
+| test10.pas | for-downto loop                      | `5`, `4`, `3`, `2`, `1`                            |
+| test11.pas | break inside while                   | `0`, `1`, `2`, `3`                                 |
+| test12.pas | continue inside for                  | `1`, `3`, `5`, `6`                                 |
+| test13.pas | Standalone procedure (no params)     | `Hello from procedure!`                            |
+| test14.pas | Standalone function returning value  | `49`                                               |
+| test15.pas | Local var shadows global             | `99`, `1`                                          |
+| test16.pas | Static scoping (reads global)        | `10`                                               |
+| test17.pas | Procedure with formal params         | `10`, `300`                                        |
+| test18.pas | Constant propagation (bonus)         | `7`, `50`, `42`, `7` (with `[ConstFold]` traces)    |
+| test19.pas | Nested while + if                    | `1`, `2`, `3`                                      |
+| test20.pas | Recursion (factorial)                | `120`, `1`                                         |
+| test21.pas | if-then-else with both branches      | `x is greater than 10`, `x is not 20`             |
+| test22.pas | Static scope violation (expect error)| RuntimeException: Undefined variable: callerLocal  |
 
-### Run All Tests (except test3 which errors, and test5 which needs input)
+### Run All Tests
 
 ```bash
-for f in tests/test1.pas tests/test2.pas tests/test4.pas tests/test6.pas tests/test7.pas; do
-  echo "=== Running $f ==="
+for f in tests/test{1,2,4,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21}.pas; do
+  echo "=== $f ==="
   java -cp "src:lib/antlr-4.13.2-complete.jar" interpreter.DelphiInterpreter "$f"
   echo ""
 done
@@ -111,9 +143,14 @@ echo "42" | java -cp "src:lib/antlr-4.13.2-complete.jar" interpreter.DelphiInter
 java -cp "src:lib/antlr-4.13.2-complete.jar" interpreter.DelphiInterpreter tests/test3.pas
 ```
 
+### Run test22 (static scope violation — expect error)
+
+```bash
+java -cp "src:lib/antlr-4.13.2-complete.jar" interpreter.DelphiInterpreter tests/test22.pas
+```
+
 ## Known Limitations
 
-- No `if/then/else` or `while/do` control flow
 - No array support
 - `readln` only reads integers
 - Protected visibility is enforced the same as private (no subclass exception)
@@ -126,4 +163,3 @@ java -cp "src:lib/antlr-4.13.2-complete.jar" interpreter.DelphiInterpreter tests
 2. Paras Mittal (UFID: 60617951)
 
 **Course:** Programming Language Principles (COP5556)
-

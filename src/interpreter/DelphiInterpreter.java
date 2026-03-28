@@ -16,6 +16,9 @@ public class DelphiInterpreter extends delphiBaseVisitor<Object> {
     private ObjectInstance currentSelf = null;
     private Map<String, delphiParser.FormalParameterListContext> methodParams = new HashMap<>();
     private Map<String, InterfaceDefinition> interfaceDefinitions = new HashMap<>();
+    private Map<String, ProcedureDefinition> procedures = new HashMap<>();
+    private boolean showConstFold = false;
+    private boolean lastExprIsConstant = false;
 
     // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -82,15 +85,19 @@ public class DelphiInterpreter extends delphiBaseVisitor<Object> {
 
     public static void main(String[] args) throws Exception {
         if (args.length < 1) {
-            System.err.println("Usage: DelphiInterpreter <file.pas>");
+            System.err.println("Usage: DelphiInterpreter [--show-const-fold] <file.pas>");
             System.exit(1);
         }
-        CharStream input = CharStreams.fromFileName(args[0]);
+        String filename = args[args.length - 1];
+        DelphiInterpreter interpreter = new DelphiInterpreter();
+        for (String arg : args) {
+            if (arg.equals("--show-const-fold")) interpreter.showConstFold = true;
+        }
+        CharStream input = CharStreams.fromFileName(filename);
         delphiLexer lexer = new delphiLexer(input);
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         delphiParser parser = new delphiParser(tokens);
         ParseTree tree = parser.program();
-        DelphiInterpreter interpreter = new DelphiInterpreter();
         interpreter.visit(tree);
     }
 
@@ -101,6 +108,12 @@ public class DelphiInterpreter extends delphiBaseVisitor<Object> {
         if (ctx.typeSection() != null) visit(ctx.typeSection());
         for (delphiParser.ImplementationSectionContext impl : ctx.implementationSection()) {
             visit(impl);
+        }
+        for (delphiParser.StandaloneProcDeclContext procCtx : ctx.standaloneProcDecl()) {
+            visit(procCtx);
+        }
+        for (delphiParser.StandaloneFuncDeclContext funcCtx : ctx.standaloneFuncDecl()) {
+            visit(funcCtx);
         }
         if (ctx.variableDeclarationSection() != null) visit(ctx.variableDeclarationSection());
         visit(ctx.block());
@@ -166,25 +179,49 @@ public class DelphiInterpreter extends delphiBaseVisitor<Object> {
 
     @Override
     public Object visitMultiplicativeExpr(delphiParser.MultiplicativeExprContext ctx) {
-        int left = toInt(visit(ctx.expression(0)));
-        int right = toInt(visit(ctx.expression(1)));
+        Object leftObj = visit(ctx.expression(0));
+        boolean leftConst = lastExprIsConstant;
+        Object rightObj = visit(ctx.expression(1));
+        boolean rightConst = lastExprIsConstant;
+
+        int left = toInt(leftObj);
+        int right = toInt(rightObj);
         String op = ctx.getChild(1).getText();
-        if (op.equals("*")) return left * right;
-        if (op.equals("/")) return left / right;
-        throw new RuntimeException("Unknown operator: " + op);
+        int result;
+        if (op.equals("*")) result = left * right;
+        else if (op.equals("/")) result = left / right;
+        else throw new RuntimeException("Unknown operator: " + op);
+
+        lastExprIsConstant = leftConst && rightConst;
+        if (lastExprIsConstant && showConstFold) {
+            System.out.println("[ConstFold] " + left + " " + op + " " + right + " -> " + result);
+        }
+        return result;
     }
 
     @Override
     public Object visitAdditiveExpr(delphiParser.AdditiveExprContext ctx) {
-        Object left = visit(ctx.expression(0));
-        Object right = visit(ctx.expression(1));
+        Object leftObj = visit(ctx.expression(0));
+        boolean leftConst = lastExprIsConstant;
+        Object rightObj = visit(ctx.expression(1));
+        boolean rightConst = lastExprIsConstant;
+
         String op = ctx.getChild(1).getText();
-        if (left instanceof String || right instanceof String) {
-            return String.valueOf(left) + String.valueOf(right);
+        if (leftObj instanceof String || rightObj instanceof String) {
+            lastExprIsConstant = false;
+            return String.valueOf(leftObj) + String.valueOf(rightObj);
         }
-        if (op.equals("+")) return toInt(left) + toInt(right);
-        if (op.equals("-")) return toInt(left) - toInt(right);
-        throw new RuntimeException("Unknown operator: " + op);
+        int left = toInt(leftObj), right = toInt(rightObj);
+        int result;
+        if (op.equals("+")) result = left + right;
+        else if (op.equals("-")) result = left - right;
+        else throw new RuntimeException("Unknown operator: " + op);
+
+        lastExprIsConstant = leftConst && rightConst;
+        if (lastExprIsConstant && showConstFold) {
+            System.out.println("[ConstFold] " + left + " " + op + " " + right + " -> " + result);
+        }
+        return result;
     }
 
     // ─── Boolean & Comparison Expressions (NEW) ──────────────────────────────────
@@ -344,17 +381,20 @@ public class DelphiInterpreter extends delphiBaseVisitor<Object> {
 
     @Override
     public Object visitIntegerExpr(delphiParser.IntegerExprContext ctx) {
+        lastExprIsConstant = true;
         return Integer.parseInt(ctx.INTEGER_LITERAL().getText());
     }
 
     @Override
     public Object visitStringExpr(delphiParser.StringExprContext ctx) {
+        lastExprIsConstant = false;
         String text = ctx.STRING_LITERAL().getText();
         return text.substring(1, text.length() - 1);
     }
 
     @Override
     public Object visitIdentifierExpr(delphiParser.IdentifierExprContext ctx) {
+        lastExprIsConstant = false;
         String name = ctx.IDENTIFIER().getText();
         if (name.equals("Self") && currentSelf != null) return currentSelf;
         if (currentSelf != null) {
@@ -592,9 +632,77 @@ public class DelphiInterpreter extends delphiBaseVisitor<Object> {
         return null;
     }
 
+    // ─── Standalone Procedures & Functions (M3) ───────────────────────────────
+
+    @Override
+    public Object visitStandaloneProcDecl(delphiParser.StandaloneProcDeclContext ctx) {
+        String name = ctx.IDENTIFIER().getText();
+        procedures.put(name, new ProcedureDefinition(
+            name, ctx.formalParameterList(), ctx.variableDeclarationSection(), ctx.block(), false
+        ));
+        return null;
+    }
+
+    @Override
+    public Object visitStandaloneFuncDecl(delphiParser.StandaloneFuncDeclContext ctx) {
+        String name = ctx.IDENTIFIER().getText();
+        procedures.put(name, new ProcedureDefinition(
+            name, ctx.formalParameterList(), ctx.variableDeclarationSection(), ctx.block(), true
+        ));
+        return null;
+    }
+
+    private Object executeStandaloneProcOrFunc(String name, delphiParser.ArgumentListContext argCtx) {
+        ProcedureDefinition procDef = procedures.get(name);
+        if (procDef == null) throw new RuntimeException("Undefined procedure/function: " + name);
+
+        // Evaluate arguments in CALLER's environment before switching scope
+        List<String> paramNames = (procDef.getParams() != null) ? getParamNames(procDef.getParams()) : new ArrayList<>();
+        List<Object> argValues = (argCtx != null) ? evalArguments(argCtx) : new ArrayList<>();
+
+        // Static scoping: parent is global env, NOT caller's env
+        Environment savedEnv = currentEnv;
+        currentEnv = new Environment(globalEnv);
+
+        // Bind formal parameters
+        for (int i = 0; i < paramNames.size() && i < argValues.size(); i++) {
+            currentEnv.define(paramNames.get(i), argValues.get(i));
+        }
+
+        // Declare local variables
+        if (procDef.getLocals() != null) {
+            visit(procDef.getLocals());
+        }
+
+        // Execute body
+        visit(procDef.getBody());
+
+        // For functions, the return value is stored as a variable with the function's name
+        Object returnValue = null;
+        if (procDef.isFunction() && currentEnv.existsLocally(name)) {
+            returnValue = currentEnv.get(name);
+        }
+
+        currentEnv = savedEnv;
+        return returnValue;
+    }
+
     @Override
     public Object visitFunctionCallExpr(delphiParser.FunctionCallExprContext ctx) {
-        // Standalone function calls not supported in M1/M2 — reserved for M3
-        throw new RuntimeException("Unknown function: " + ctx.IDENTIFIER().getText());
+        String name = ctx.IDENTIFIER().getText();
+        if (!procedures.containsKey(name)) {
+            throw new RuntimeException("Unknown function: " + name);
+        }
+        return executeStandaloneProcOrFunc(name, ctx.argumentList());
+    }
+
+    @Override
+    public Object visitProcedureCallStatement(delphiParser.ProcedureCallStatementContext ctx) {
+        String name = ctx.IDENTIFIER().getText();
+        if (!procedures.containsKey(name)) {
+            throw new RuntimeException("Unknown procedure: " + name);
+        }
+        executeStandaloneProcOrFunc(name, ctx.argumentList());
+        return null;
     }
 }

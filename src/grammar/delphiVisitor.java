@@ -17,6 +17,18 @@ public interface delphiVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitProgram(delphiParser.ProgramContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link delphiParser#standaloneProcDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitStandaloneProcDecl(delphiParser.StandaloneProcDeclContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link delphiParser#standaloneFuncDecl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitStandaloneFuncDecl(delphiParser.StandaloneFuncDeclContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link delphiParser#programHeader}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -100,6 +112,12 @@ public interface delphiVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitStatement(delphiParser.StatementContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link delphiParser#procedureCallStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitProcedureCallStatement(delphiParser.ProcedureCallStatementContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link delphiParser#ifStatement}.
 	 * @param ctx the parse tree

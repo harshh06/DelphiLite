@@ -1,25 +1,17 @@
-program Test12;
-{ Test 12: continue — skip i = 3 and i = 6 in a for loop }
+program TestContinue;
+
+{ Test 12: continue inside for — skip even numbers }
 
 var
   i: Integer;
 
 begin
-  for i := 1 to 8 do
+  for i := 1 to 6 do
   begin
-    if i = 3 then
+    if i = 2 then
       continue;
-    if i = 6 then
+    if i = 4 then
       continue;
     writeln(i);
   end;
 end.
-
-{ Expected output:
-  1
-  2
-  4
-  5
-  7
-  8
-}

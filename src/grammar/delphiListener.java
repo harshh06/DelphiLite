@@ -18,6 +18,26 @@ public interface delphiListener extends ParseTreeListener {
 	 */
 	void exitProgram(delphiParser.ProgramContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link delphiParser#standaloneProcDecl}.
+	 * @param ctx the parse tree
+	 */
+	void enterStandaloneProcDecl(delphiParser.StandaloneProcDeclContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link delphiParser#standaloneProcDecl}.
+	 * @param ctx the parse tree
+	 */
+	void exitStandaloneProcDecl(delphiParser.StandaloneProcDeclContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link delphiParser#standaloneFuncDecl}.
+	 * @param ctx the parse tree
+	 */
+	void enterStandaloneFuncDecl(delphiParser.StandaloneFuncDeclContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link delphiParser#standaloneFuncDecl}.
+	 * @param ctx the parse tree
+	 */
+	void exitStandaloneFuncDecl(delphiParser.StandaloneFuncDeclContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link delphiParser#programHeader}.
 	 * @param ctx the parse tree
 	 */
@@ -157,6 +177,16 @@ public interface delphiListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitStatement(delphiParser.StatementContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link delphiParser#procedureCallStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterProcedureCallStatement(delphiParser.ProcedureCallStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link delphiParser#procedureCallStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitProcedureCallStatement(delphiParser.ProcedureCallStatementContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link delphiParser#ifStatement}.
 	 * @param ctx the parse tree
