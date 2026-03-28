@@ -31,4 +31,8 @@ public class Environment {
         if (parent != null) return parent.exists(name);
         return false;
     }
+
+    public boolean existsLocally(String name) {
+        return variables.containsKey(name);
+    }
 }

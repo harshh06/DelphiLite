@@ -3,7 +3,15 @@ grammar delphi;
 // --- Parser Rules ---
 
 program
-    : programHeader typeSection? implementationSection* variableDeclarationSection? block '.'
+    : programHeader typeSection? (implementationSection | standaloneProcDecl | standaloneFuncDecl)* variableDeclarationSection? block '.'
+    ;
+
+standaloneProcDecl
+    : 'procedure' IDENTIFIER formalParameterList? ';' variableDeclarationSection? block ';'
+    ;
+
+standaloneFuncDecl
+    : 'function' IDENTIFIER formalParameterList? ':' typeName ';' variableDeclarationSection? block ';'
     ;
 
 programHeader
@@ -67,32 +75,68 @@ statementList
 statement
     : assignmentStatement
     | methodCallStatement
+    | procedureCallStatement
     | writelnStatement
     | readlnStatement
+    | ifStatement
+    | whileStatement
+    | forStatement
+    | breakStatement
+    | continueStatement
+    | block
     | /* empty */
+    ;
+
+procedureCallStatement
+    : IDENTIFIER argumentList?
+    ;
+
+ifStatement
+    : 'if' expression 'then' statement ('else' statement)?
+    ;
+
+whileStatement
+    : 'while' expression 'do' statement
+    ;
+
+forStatement
+    : 'for' IDENTIFIER ':=' expression ('to' | 'downto') expression 'do' statement
+    ;
+
+breakStatement
+    : 'break'
+    ;
+
+continueStatement
+    : 'continue'
     ;
 
 readlnStatement
     : 'readln' '(' IDENTIFIER ')'
     ;
-    
+
 methodCallStatement
     : IDENTIFIER '.' IDENTIFIER argumentList?
     ;
 
 assignmentStatement
-    : IDENTIFIER ':=' expression                      // x := 10
-    | IDENTIFIER '.' IDENTIFIER ':=' expression       // obj.Field := 10
+    : IDENTIFIER ':=' expression
+    | IDENTIFIER '.' IDENTIFIER ':=' expression
     ;
 
 writelnStatement
     : 'writeln' '(' expression ')'
     ;
 
+// Expression rule — ordered highest to lowest precedence (ANTLR4 left-recursion)
 expression
-    : expression ('*' | '/') expression  # MultiplicativeExpr
-    | expression ('+' | '-') expression  # AdditiveExpr
-    | atom                               # AtomExpr
+    : expression ('*' | '/') expression                                # MultiplicativeExpr
+    | expression ('+' | '-') expression                                # AdditiveExpr
+    | expression ('<' | '>' | '<=' | '>=' | '=' | '<>') expression    # CompareExpr
+    | 'not' expression                                                  # NotExpr
+    | expression 'and' expression                                       # AndExpr
+    | expression 'or' expression                                        # OrExpr
+    | atom                                                             # AtomExpr
     ;
 
 atom
@@ -101,6 +145,8 @@ atom
     | IDENTIFIER                                  # IdentifierExpr
     | INTEGER_LITERAL                             # IntegerExpr
     | STRING_LITERAL                              # StringExpr
+    | 'true'                                      # TrueExpr
+    | 'false'                                     # FalseExpr
     | '(' expression ')'                          # ParenExpr
     ;
 
