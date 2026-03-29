@@ -27,6 +27,17 @@ A Delphi/Object Pascal interpreter built with Java and ANTLR4, supporting object
 - [x] **Bonus:** Formal Parameter Passing in procedures/functions
 - [x] **Bonus:** Constant Propagation with recursive folding (`--show-const-fold` flag)
 
+## Technical Implementation
+
+### Implementation Strategy
+This interpreter follows the **Visitor** pattern using ANTLR4's built-in parse tree generator. The core evaluation logic is encapsulated in `DelphiInterpreter.java`, which traverses the parse tree at runtime. This approach was chosen to leverage the existing library infrastructure while implementing our own scoped symbol table.
+
+### Scoping & Symbol Table
+We implemented **Static Scoping** as follows:
+- **Environment Chain**: A `Environment` class handles scoped symbol storage. Each environment points back to its parent.
+- **New Scopes**: Each `while`, `for`, and `if` block, as well as `procedure` and `function` calls, creates a new scope.
+- **Static Scoping Rule**: Functions and procedures capture the global environment at define-time, ensuring only their local parameters and global variables are visible, preventing access to the caller's local variables (as required and verified in `test22.pas`).
+
 ## Project Structure
 
 ```text
