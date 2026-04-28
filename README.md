@@ -55,11 +55,20 @@ DelphiLite/
 │       ├── ProcedureDefinition.java # Standalone procedure/function storage
 │       ├── BreakException.java      # Control flow: break
 │       └── ContinueException.java   # Control flow: continue
+│   └── compiler/                    # LLVM IR backend (subset; no OOP)
+│       ├── DelphiCompiler.java      # CLI: .pas → .ll
+│       ├── DelphiLLVMGenerator.java # Parse-tree visitor → LLVM IR text
+│       ├── IRBuilder.java           # SSA temp / label / instruction buffer
+│       ├── LLVMValue.java           # i32 operands (immediates or registers)
+│       ├── VarBinding.java          # Map names to alloca / global pointers
+│       └── LoopLabels.java          # break / continue targets
 ├── tests/
 │   ├── test1.pas  — test7.pas      # OOP & I/O tests
 │   ├── test8.pas  — test12.pas     # Control flow tests
 │   ├── test13.pas — test17.pas     # Standalone proc/func & scoping tests
-│   └── test18.pas — test22.pas     # Bonus, combined, & edge-case tests
+│   ├── test18.pas — test22.pas     # Bonus, combined, & edge-case tests
+│   └── ll/                          # Golden LLVM IR (tests test8.pas–test21.pas)
+│       └── test8.ll … test21.ll   # Regenerate via compiler section below
 ├── lib/
 │   └── antlr-4.13.2-complete.jar
 ├── README.md
@@ -84,8 +93,47 @@ java -jar lib/antlr-4.13.2-complete.jar -package grammar -visitor grammar/delphi
 ### Step 2: Compile All Java Files
 
 ```bash
-javac -cp lib/antlr-4.13.2-complete.jar src/grammar/*.java src/interpreter/*.java
+javac -cp lib/antlr-4.13.2-complete.jar src/grammar/*.java src/interpreter/*.java src/compiler/*.java
 ```
+
+## LLVM compiler (`DelphiCompiler`)
+
+The **compiler** reuses the same ANTLR front end as the interpreter and emits **textual LLVM IR** (`.ll`) for a **non-OOP subset**: globals, `Integer`/`Boolean` as `i32`, expressions, control flow (`if`, `while`, `for`, `break`, `continue`), standalone procedures and functions, `writeln` (integer or string **literal** only), and `readln`. Programs with a `type` section (classes) or class `implementation` sections are rejected.
+
+### Generate LLVM IR
+
+From the project root (after Step 2):
+
+```bash
+java -cp "src:lib/antlr-4.13.2-complete.jar" compiler.DelphiCompiler tests/test8.pas
+```
+
+Writes **`output.ll`** in the current directory. To choose the path:
+
+```bash
+java -cp "src:lib/antlr-4.13.2-complete.jar" compiler.DelphiCompiler -o myprog.ll tests/test14.pas
+```
+
+On Windows, use `;` instead of `:` in the classpath.
+
+### Regenerate checked-in `tests/ll/*.ll`
+
+```bash
+for n in 8 9 10 11 12 13 14 15 16 17 18 19 20 21; do
+  java -cp "src:lib/antlr-4.13.2-complete.jar" compiler.DelphiCompiler -o "tests/ll/test${n}.ll" "tests/test${n}.pas"
+done
+```
+
+### Optional: compile and run the IR with Clang
+
+If Clang/LLVM is installed:
+
+```bash
+java -cp "src:lib/antlr-4.13.2-complete.jar" compiler.DelphiCompiler -o /tmp/t.ll tests/test8.pas
+clang /tmp/t.ll -c -o /tmp/t.o && clang /tmp/t.o -o /tmp/t.bin && /tmp/t.bin
+```
+
+You may see a harmless warning about the module target triple differing from the host.
 
 ## Run Instructions
 
@@ -164,6 +212,7 @@ java -cp "src:lib/antlr-4.13.2-complete.jar" interpreter.DelphiInterpreter tests
 
 - No array support
 - `readln` only reads integers
+- **LLVM backend:** no classes, interfaces, methods, or string variables; string concatenation and string comparisons are unsupported; **`test22.pas`** fails at codegen with an undefined-variable error (static scope), which matches the interpreter’s intent
 - Protected visibility is enforced the same as private (no subclass exception)
 - No `inherited` keyword support
 - Single-file programs only (no `uses` clause)
