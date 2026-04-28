@@ -67,8 +67,16 @@ DelphiLite/
 │   ├── test8.pas  — test12.pas     # Control flow tests
 │   ├── test13.pas — test17.pas     # Standalone proc/func & scoping tests
 │   ├── test18.pas — test22.pas     # Bonus, combined, & edge-case tests
-│   └── ll/                          # Golden LLVM IR (tests test8.pas–test21.pas)
-│       └── test8.ll … test21.ll   # Regenerate via compiler section below
+│   ├── ll/                          # Golden LLVM IR (tests test8.pas–test21.pas)
+│   │   └── test8.ll … test21.ll   # Regenerate via compiler section below
+│   └── wasm/
+│       ├── test_wasm_answer.pas    # No-I/O wasm sample source
+│       └── test_wasm_answer.ll     # Generated with --target wasm
+├── scripts/
+│   └── build-wasm.sh                # .ll -> .wasm helper (llc/wasm-ld or clang)
+├── wasm/
+│   ├── runtime.html                 # Browser loader page
+│   └── runtime.js                   # Instantiates module.wasm and calls Answer()
 ├── lib/
 │   └── antlr-4.13.2-complete.jar
 ├── README.md
@@ -116,6 +124,14 @@ java -cp "src:lib/antlr-4.13.2-complete.jar" compiler.DelphiCompiler -o myprog.l
 
 On Windows, use `;` instead of `:` in the classpath.
 
+Use `--target wasm` to emit wasm-oriented target metadata:
+
+```bash
+java -cp "src:lib/antlr-4.13.2-complete.jar" compiler.DelphiCompiler --target wasm -o tests/wasm/test_wasm_answer.ll tests/wasm/test_wasm_answer.pas
+```
+
+For now, `--target wasm` only supports **pure computation** programs (no `writeln` / `readln`).
+
 ### Regenerate checked-in `tests/ll/*.ll`
 
 ```bash
@@ -134,6 +150,41 @@ clang /tmp/t.ll -c -o /tmp/t.o && clang /tmp/t.o -o /tmp/t.bin && /tmp/t.bin
 ```
 
 You may see a harmless warning about the module target triple differing from the host.
+
+## Extra Credit: LLVM IR -> WASM + browser runtime
+
+### 1) Generate wasm-target IR
+
+```bash
+java -cp "src:lib/antlr-4.13.2-complete.jar" compiler.DelphiCompiler --target wasm -o tests/wasm/test_wasm_answer.ll tests/wasm/test_wasm_answer.pas
+```
+
+### 2) Build `.wasm` from `.ll`
+
+```bash
+scripts/build-wasm.sh tests/wasm/test_wasm_answer.ll wasm/module.wasm
+```
+
+`scripts/build-wasm.sh` prefers:
+
+- `llc` + `wasm-ld`, or
+- `clang --target=wasm32-unknown-unknown` as fallback
+
+If your local clang does not include wasm target support, install LLVM tools with wasm backend.
+
+### 3) Run in browser
+
+Run a local web server from project root:
+
+```bash
+python3 -m http.server 8000
+```
+
+Open:
+
+- `http://localhost:8000/wasm/runtime.html`
+
+The page loads `wasm/module.wasm`, calls exported `Answer()`, and displays the result.
 
 ## Run Instructions
 
