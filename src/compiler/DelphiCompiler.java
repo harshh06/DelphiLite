@@ -8,22 +8,32 @@ import java.nio.file.*;
 
 /**
  * CLI: parses a .pas file and writes LLVM IR (.ll).
- * Usage: {@code java -cp ... compiler.DelphiCompiler [-o out.ll] <file.pas>}
+ * Usage: {@code java -cp ... compiler.DelphiCompiler [-o out.ll] [--target native|wasm] <file.pas>}
  */
 public final class DelphiCompiler {
 
     public static void main(String[] args) throws Exception {
         String outPath = "output.ll";
         String inPath = null;
+        DelphiLLVMGenerator.Target target = DelphiLLVMGenerator.Target.NATIVE;
         for (int i = 0; i < args.length; i++) {
             if ("-o".equals(args[i]) && i + 1 < args.length) {
                 outPath = args[++i];
+            } else if ("--target".equals(args[i]) && i + 1 < args.length) {
+                String targetArg = args[++i].toLowerCase();
+                if ("native".equals(targetArg)) {
+                    target = DelphiLLVMGenerator.Target.NATIVE;
+                } else if ("wasm".equals(targetArg) || "wasm32".equals(targetArg)) {
+                    target = DelphiLLVMGenerator.Target.WASM32;
+                } else {
+                    throw new IllegalArgumentException("Unknown --target value: " + targetArg + " (expected native|wasm)");
+                }
             } else if (!args[i].startsWith("-")) {
                 inPath = args[i];
             }
         }
         if (inPath == null) {
-            System.err.println("Usage: DelphiCompiler [-o output.ll] <file.pas>");
+            System.err.println("Usage: DelphiCompiler [-o output.ll] [--target native|wasm] <file.pas>");
             System.exit(1);
         }
 
@@ -41,7 +51,7 @@ public final class DelphiCompiler {
         });
 
         delphiParser.ProgramContext tree = parser.program();
-        DelphiLLVMGenerator gen = new DelphiLLVMGenerator();
+        DelphiLLVMGenerator gen = new DelphiLLVMGenerator(target);
         String ll = gen.generate(tree);
         Path p = Paths.get(outPath);
         Path parent = p.getParent();
